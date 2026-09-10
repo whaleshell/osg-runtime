@@ -1,0 +1,17 @@
+version: "3"
+
+tasks:
+  test:
+    cmds:
+      - go test ./...
+  build:
+    cmds:
+      - go build ./...
+  vet:
+    cmds:
+      - go vet ./...
+  check:quick:
+    cmds:
+      - task: vet
+      - task: test
+      - task: build
