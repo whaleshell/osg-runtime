@@ -1,14 +1,13 @@
 # osg-runtime
 
-Apache-2.0 · transitional runtime (sandbox, harden, proxy, drivers, `osg-init`).
+MIT — sandbox lifecycle, Docker driver, CONNECT proxy, env allowlist, `osg-init`.
 
-**Depends on:** MIT `osg-core` (product policy), `github.com/docker/docker` (client)  
+**Depends on:** `osg-core`  
 **Must not depend on:** `osg-cli`, gateway UI
 
-Policy YAML is the **osg** schema (`osg-core`); OpenShell-shaped files are imported at parse time.
-
 ```bash
-task --dir osg-runtime check:quick
+export GOWORK=/path/to/agent-blocker/go.work
+go test -C osg-runtime ./...
 go build -C osg-cli -o osg ./cmd/osg && ./osg health
 ```
 
