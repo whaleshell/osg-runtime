@@ -10,6 +10,9 @@ type auditEvent struct {
 	Action string `json:"action"`
 	Host   string `json:"host,omitempty"`
 	Port   int    `json:"port,omitempty"`
+	Method string `json:"method,omitempty"`
+	Path   string `json:"path,omitempty"`
+	Binary string `json:"binary,omitempty"`
 	Allow  bool   `json:"allow"`
 	Reason string `json:"reason,omitempty"`
 }

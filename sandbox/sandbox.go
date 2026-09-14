@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/lkmavi/osg-core"
-	"github.com/lkmavi/osg-core/policy"
-	"github.com/lkmavi/osg-runtime/driver"
-	"github.com/lkmavi/osg-runtime/proxy"
+	"github.com/zorneth/osg-core"
+	"github.com/zorneth/osg-core/policy"
+	"github.com/zorneth/osg-runtime/driver"
+	"github.com/zorneth/osg-runtime/proxy"
 )
 
 // Manager owns sandbox lifecycle for one host.

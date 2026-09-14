@@ -1,29 +1,41 @@
-package env
+package env_test
 
 import (
-	"reflect"
+	"os"
+	"strings"
 	"testing"
+
+	"github.com/zorneth/osg-runtime/env"
 )
 
-func TestFilter(t *testing.T) {
-	in := []string{
-		"TERM=xterm",
-		"SECRET=nope",
-		"ANTHROPIC_API_KEY=sk-test",
-		"BAD",
-		"LANG=C",
+func TestFromHostForGuestPlaceholders(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	t.Setenv("ANTHROPIC_API_KEY", "sk-real")
+	got := env.FromHostForGuest("ANTHROPIC_API_KEY")
+	var term, key string
+	for _, e := range got {
+		k, v, _ := strings.Cut(e, "=")
+		switch k {
+		case "TERM":
+			term = v
+		case "ANTHROPIC_API_KEY":
+			key = v
+		}
 	}
-	got := Filter(in, DefaultAllowlist...)
-	want := []string{"TERM=xterm", "ANTHROPIC_API_KEY=sk-test", "LANG=C"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
+	if term != "xterm" {
+		t.Fatalf("TERM=%q", term)
 	}
-}
-
-func TestMergeAllowlists(t *testing.T) {
-	got := MergeAllowlists([]string{"TERM", "LANG"}, "LANG", "CURSOR_API_KEY", "")
-	want := []string{"TERM", "LANG", "CURSOR_API_KEY"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
+	if key != env.PlaceholderPrefix+"ANTHROPIC_API_KEY" {
+		t.Fatalf("key=%q", key)
+	}
+	secrets := env.SecretsFromHost("ANTHROPIC_API_KEY")
+	found := false
+	for _, e := range secrets {
+		if e == "ANTHROPIC_API_KEY=sk-real" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("secrets=%v environ has %v", secrets, os.Getenv("ANTHROPIC_API_KEY"))
 	}
 }

@@ -3,16 +3,18 @@ package proxy_test
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/lkmavi/osg-core/engine"
-	"github.com/lkmavi/osg-core/policy"
-	"github.com/lkmavi/osg-runtime/proxy"
+	"github.com/zorneth/osg-core/engine"
+	"github.com/zorneth/osg-core/policy"
+	"github.com/zorneth/osg-runtime/proxy"
 )
 
 func TestCONNECTAllowDeny(t *testing.T) {
@@ -47,6 +49,7 @@ func TestCONNECTAllowDeny(t *testing.T) {
 		t.Fatal(err)
 	}
 	srv := proxy.NewServer(&eng, io.Discard)
+	srv.AllowLoopback = true
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -101,6 +104,186 @@ func rawCONNECT(t *testing.T, proxyAddr, target string) (string, int) {
 	buf := make([]byte, 64)
 	n, _ := br.Read(buf)
 	return string(buf[:n]), resp.StatusCode
+}
+
+func TestAbsoluteFormL7(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ok", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("l7-ok"))
+	})
+	backend := &http.Server{Handler: mux}
+	bln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bln.Close()
+	go func() { _ = backend.Serve(bln) }()
+	defer backend.Close()
+	_, bport, _ := net.SplitHostPort(bln.Addr().String())
+
+	doc := policy.Document{
+		Version: 1,
+		Network: &policy.Network{
+			Default: "deny",
+			Allow: []policy.AllowRule{{
+				ID:       "local",
+				Host:     "127.0.0.1",
+				Port:     mustAtoi(bport),
+				Protocol: "rest",
+				Access:   "read-only",
+			}},
+		},
+	}
+	var eng engine.Allowlist
+	if err := eng.Apply(doc); err != nil {
+		t.Fatal(err)
+	}
+	srv := proxy.NewServer(&eng, io.Discard)
+	srv.AllowLoopback = true
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = srv.Serve(ctx, ln) }()
+
+	client := &http.Client{
+		Transport: &http.Transport{Proxy: http.ProxyURL(mustURL("http://" + ln.Addr().String()))},
+		Timeout:   3 * time.Second,
+	}
+
+	t.Run("get_allow", func(t *testing.T) {
+		res, err := client.Get("http://127.0.0.1:" + bport + "/ok")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		if res.StatusCode != 200 || string(b) != "l7-ok" {
+			t.Fatalf("status=%d body=%q", res.StatusCode, b)
+		}
+	})
+	t.Run("post_deny", func(t *testing.T) {
+		res, err := client.Post("http://127.0.0.1:"+bport+"/ok", "text/plain", strings.NewReader("x"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != 403 {
+			t.Fatalf("status=%d want 403", res.StatusCode)
+		}
+	})
+}
+
+func TestTLSTerminateL7(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ok", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("mitm-ok"))
+	})
+	origin := &http.Server{Handler: mux}
+	rawLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rawLn.Close()
+	tlsLn := tls.NewListener(rawLn, &tls.Config{
+		Certificates: []tls.Certificate{mustSelfSigned(t)},
+		NextProtos:   []string{"http/1.1"},
+	})
+	go func() { _ = origin.Serve(tlsLn) }()
+	defer origin.Close()
+	_, oport, _ := net.SplitHostPort(rawLn.Addr().String())
+
+	doc := policy.Document{
+		Version: 1,
+		Network: &policy.Network{
+			Default: "deny",
+			Allow: []policy.AllowRule{{
+				ID:       "local",
+				Host:     "127.0.0.1",
+				Port:     mustAtoi(oport),
+				Protocol: "rest",
+				TLS:      "terminate",
+				Access:   "read-only",
+			}},
+		},
+	}
+	var eng engine.Allowlist
+	if err := eng.Apply(doc); err != nil {
+		t.Fatal(err)
+	}
+	srv := proxy.NewServer(&eng, io.Discard)
+	srv.AllowLoopback = true
+	srv.UpstreamTLS = &tls.Config{InsecureSkipVerify: true, NextProtos: []string{"http/1.1"}}
+	ca := srv.CA()
+	if ca == nil {
+		t.Fatal("expected MITM CA")
+	}
+
+	pln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pln.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = srv.Serve(ctx, pln) }()
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(mustURL("http://" + pln.Addr().String())),
+			TLSClientConfig: &tls.Config{
+				RootCAs:    ca.RootPool(),
+				NextProtos: []string{"http/1.1"},
+			},
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	t.Run("get_allow", func(t *testing.T) {
+		res, err := client.Get("https://127.0.0.1:" + oport + "/ok")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		if res.StatusCode != 200 || string(b) != "mitm-ok" {
+			t.Fatalf("status=%d body=%q", res.StatusCode, b)
+		}
+	})
+	t.Run("post_deny", func(t *testing.T) {
+		res, err := client.Post("https://127.0.0.1:"+oport+"/ok", "text/plain", strings.NewReader("x"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != 403 {
+			t.Fatalf("status=%d want 403", res.StatusCode)
+		}
+	})
+}
+
+func mustSelfSigned(t *testing.T) tls.Certificate {
+	t.Helper()
+	ca, err := proxy.GenerateMitmCA()
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := ca.Leaf("127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return *leaf
+}
+
+func mustURL(s string) *url.URL {
+	u, err := url.Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	return u
 }
 
 func mustAtoi(s string) int {

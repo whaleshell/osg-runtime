@@ -1,17 +1,115 @@
 version: "3"
 
+vars:
+  IMAGE_DIR: images/sandbox
+  ARCH: '{{.ARCH | default ""}}'
+
 tasks:
   test:
+    desc: go test ./...
     cmds:
       - go test ./...
   build:
+    desc: go build ./...
     cmds:
       - go build ./...
   vet:
+    desc: go vet ./...
     cmds:
       - go vet ./...
   check:quick:
+    desc: vet + test + build
     cmds:
       - task: vet
       - task: test
       - task: build
+
+  image:cli:
+    desc: Build osg-sandbox:local
+    cmds:
+      - task: image
+        vars:
+          TARGET: cli
+
+  image:gui:
+    desc: Build osg-sandbox:gui
+    cmds:
+      - task: image
+        vars:
+          TARGET: gui
+
+  image:gpu:
+    desc: Build osg-sandbox:gpu
+    cmds:
+      - task: image
+        vars:
+          TARGET: gpu
+
+  image:both:
+    desc: Build cli + gui images
+    cmds:
+      - task: image
+        vars:
+          TARGET: both
+
+  image:all:
+    desc: Build cli + gui + gpu images
+    cmds:
+      - task: image
+        vars:
+          TARGET: all
+
+  image:
+    desc: "Build sandbox image(s). TARGET=cli|gui|gpu|both|all (default gui)"
+    vars:
+      TARGET: '{{.TARGET | default "gui"}}'
+    cmds:
+      - |
+        set -euo pipefail
+        ROOT="{{.ROOT_DIR}}"
+        # When included from org Taskfile as runtime:*, ROOT_DIR is the org root.
+        if [[ ! -d "$ROOT/cmd/osg-init" && -d "$ROOT/osg-runtime/cmd/osg-init" ]]; then
+          ROOT="$ROOT/osg-runtime"
+        fi
+        TARGET="{{.TARGET}}"
+        ARCH="{{.ARCH}}"
+        if [[ -z "$ARCH" ]]; then
+          ARCH="${GOARCH:-$(go env GOARCH)}"
+        fi
+        STAGE="$(mktemp -d)"
+        trap 'rm -rf "$STAGE"' EXIT
+        IMG_DIR="$ROOT/{{.IMAGE_DIR}}"
+
+        echo "cross-compile osg-init (linux/$ARCH)…"
+        GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build -C "$ROOT" -o "$STAGE/osg-init" ./cmd/osg-init
+        cp "$IMG_DIR/Dockerfile" "$STAGE/Dockerfile"
+        cp "$IMG_DIR/osg-gui-boot" "$STAGE/osg-gui-boot"
+        cp "$IMG_DIR/osg-display-start" "$STAGE/osg-display-start"
+        cp "$IMG_DIR/chromium-osg" "$STAGE/chromium-osg"
+        chmod +x "$STAGE/osg-gui-boot" "$STAGE/osg-display-start" "$STAGE/chromium-osg"
+
+        build_one() {
+          local t="$1" tag="$2"
+          echo "docker build --target $t -t $tag …"
+          docker build --target "$t" -t "$tag" "$STAGE"
+          echo "ok: $tag"
+        }
+
+        case "$TARGET" in
+          cli)  build_one cli "${OSG_SANDBOX_IMAGE:-osg-sandbox:local}" ;;
+          gui)  build_one gui "${OSG_GUI_IMAGE:-osg-sandbox:gui}" ;;
+          gpu)  build_one gpu "${OSG_GPU_IMAGE:-osg-sandbox:gpu}" ;;
+          both)
+            build_one cli "${OSG_SANDBOX_IMAGE:-osg-sandbox:local}"
+            build_one gui "${OSG_GUI_IMAGE:-osg-sandbox:gui}"
+            ;;
+          all)
+            build_one cli "${OSG_SANDBOX_IMAGE:-osg-sandbox:local}"
+            build_one gui "${OSG_GUI_IMAGE:-osg-sandbox:gui}"
+            build_one gpu "${OSG_GPU_IMAGE:-osg-sandbox:gpu}"
+            ;;
+          *)
+            echo "usage: task runtime:image TARGET=cli|gui|gpu|both|all" >&2
+            exit 2
+            ;;
+        esac
