@@ -2,6 +2,7 @@
 package docker
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -654,23 +656,116 @@ func (d *Driver) Inspect(ctx context.Context, nameOrID string) (driver.Info, err
 	return driver.Info{}, fmt.Errorf("docker inspect: sandbox %q not found", nameOrID)
 }
 
-// Logs streams stdout/stderr from the sandbox container.
+// Logs streams stdout/stderr from the sandbox container and, when present, the
+// egress proxy sidecar (where OCSF agent-observation events are emitted).
+// When follow is true, starts from the last 500 lines per container.
 func (d *Driver) Logs(ctx context.Context, id core.ID, follow bool, w io.Writer) error {
 	if w == nil {
 		w = os.Stdout
 	}
-	rc, err := d.cli.ContainerLogs(ctx, string(id), container.LogsOptions{
+	opts := container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     follow,
 		Timestamps: false,
-	})
-	if err != nil {
-		return fmt.Errorf("docker logs: %w", err)
 	}
-	defer rc.Close()
-	_, err = stdcopy.StdCopy(w, w, rc)
-	return err
+	if follow {
+		opts.Tail = "500"
+	}
+
+	type src struct {
+		id     string
+		prefix string
+	}
+	sources := []src{{id: string(id), prefix: "sandbox"}}
+
+	if info, err := d.cli.ContainerInspect(ctx, string(id)); err == nil && info.Config != nil {
+		name := info.Config.Labels[labelName]
+		if name == "" {
+			name = strings.TrimPrefix(strings.TrimPrefix(info.Name, "/"), "osg-")
+		}
+		if name != "" {
+			proxyName := "osg-proxy-" + name
+			if _, err := d.cli.ContainerInspect(ctx, proxyName); err == nil {
+				sources = append(sources, src{id: proxyName, prefix: "proxy"})
+			}
+		}
+	}
+
+	if len(sources) == 1 {
+		rc, err := d.cli.ContainerLogs(ctx, sources[0].id, opts)
+		if err != nil {
+			return fmt.Errorf("docker logs: %w", err)
+		}
+		defer rc.Close()
+		_, err = stdcopy.StdCopy(w, w, rc)
+		return err
+	}
+
+	var mu sync.Mutex
+	writeLine := func(prefix, text string) error {
+		mu.Lock()
+		defer mu.Unlock()
+		_, err := fmt.Fprintf(w, "[%s] %s\n", prefix, text)
+		return err
+	}
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(sources))
+	for _, s := range sources {
+		rc, err := d.cli.ContainerLogs(ctx, s.id, opts)
+		if err != nil {
+			if s.prefix == "proxy" {
+				continue
+			}
+			return fmt.Errorf("docker logs %s: %w", s.id, err)
+		}
+		wg.Add(1)
+		go func(prefix string, rc io.ReadCloser) {
+			defer wg.Done()
+			defer rc.Close()
+			pr, pw := io.Pipe()
+			go func() {
+				_, copyErr := stdcopy.StdCopy(pw, pw, rc)
+				_ = pw.CloseWithError(copyErr)
+			}()
+			sc := bufio.NewScanner(pr)
+			sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+			for sc.Scan() {
+				if ctx.Err() != nil {
+					errCh <- ctx.Err()
+					return
+				}
+				if err := writeLine(prefix, sc.Text()); err != nil {
+					errCh <- err
+					return
+				}
+			}
+			if err := sc.Err(); err != nil && ctx.Err() == nil {
+				errCh <- err
+			}
+		}(s.prefix, rc)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		select {
+		case err := <-errCh:
+			return err
+		default:
+			return nil
+		}
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (d *Driver) ensureVolume(ctx context.Context, name string) error {

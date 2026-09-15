@@ -6,7 +6,7 @@
 #   docker build --target gui -t osg-sandbox:gui .
 #   docker build --target gpu -t osg-sandbox:gpu .
 #
-# cli  — Debian bookworm + curl (agent bootstrap)
+# cli  — Debian bookworm + curl + git (agent bootstrap)
 # gui  — Debian bookworm: Chromium + Xvfb/openbox/noVNC
 # gpu  — Debian bookworm + CUDA *userland* packages; host injects libcuda via CDI
 
@@ -17,6 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    git \
     bash \
     && rm -rf /var/lib/apt/lists/*
 COPY osg-init /usr/local/bin/osg-init
@@ -34,6 +35,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    git \
     bash \
     python3 \
     python3-pip \
@@ -64,6 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dbus-x11 \
     xterm \
     curl \
+    git \
     bash \
     && rm -rf /var/lib/apt/lists/* \
     && chromium --version

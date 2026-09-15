@@ -247,8 +247,24 @@ func (s *Server) handleAbsoluteHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rewSecrets := secrets
+	bound := []string(nil)
 	if dec.Matched != nil {
-		rewSecrets = FilterSecrets(secrets, dec.Matched.Rule.CredentialKeys)
+		bound = dec.Matched.Rule.CredentialKeys
+	}
+	used := PlaceholderKeysInRequest(r)
+	rewSecrets, err = SecretsForEndpoint(secrets, bound, used)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("osg-proxy: credential_endpoint_mismatch\n"))
+		s.logAudit(auditEvent{
+			Action: "deny", Host: host, Port: port, Reason: err.Error(), Allow: false,
+			Method: r.Method, Path: pathOnly, Binary: bin,
+		})
+		s.logAudit(auditEvent{
+			Action: "finding", Host: host, Port: port, Reason: "credential_endpoint_mismatch", Allow: false,
+			Method: r.Method, Path: pathOnly, Binary: bin,
+		})
+		return
 	}
 	if err := RewriteHTTPRequest(r, rewSecrets); err != nil {
 		w.WriteHeader(http.StatusForbidden)

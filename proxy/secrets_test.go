@@ -2,6 +2,7 @@ package proxy_test
 
 import (
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -59,6 +60,47 @@ func TestRewriteLegacyPlaceholderAlias(t *testing.T) {
 	}
 	if req.Header.Get("Authorization") != "Bearer secret-value" {
 		t.Fatalf("auth=%q", req.Header.Get("Authorization"))
+	}
+}
+
+func TestCredentialEndpointMismatch(t *testing.T) {
+	secrets := proxy.SecretStore{
+		"GITHUB_TOKEN": "gh-secret",
+		"OPENAI_API_KEY": "oai-secret",
+	}
+	req, _ := http.NewRequest(http.MethodGet, "http://api.openai.com/v1", nil)
+	req.Header.Set("Authorization", "Bearer "+env.PlaceholderPrefix+"GITHUB_TOKEN")
+	used := proxy.PlaceholderKeysInRequest(req)
+	if len(used) != 1 || used[0] != "GITHUB_TOKEN" {
+		t.Fatalf("used=%v", used)
+	}
+	// OpenAI endpoint only binds OPENAI_API_KEY
+	_, err := proxy.SecretsForEndpoint(secrets, []string{"OPENAI_API_KEY"}, used)
+	if err == nil || !errors.Is(err, proxy.ErrCredentialEndpointMismatch) {
+		t.Fatalf("err=%v", err)
+	}
+	// GitHub-bound endpoint allows GITHUB_TOKEN
+	rew, err := proxy.SecretsForEndpoint(secrets, []string{"GITHUB_TOKEN", "GH_TOKEN"}, used)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := proxy.RewriteHTTPRequest(req, rew); err != nil {
+		t.Fatal(err)
+	}
+	if req.Header.Get("Authorization") != "Bearer gh-secret" {
+		t.Fatalf("auth=%q", req.Header.Get("Authorization"))
+	}
+	// Empty binding rejects any placeholder
+	_, err = proxy.SecretsForEndpoint(secrets, nil, used)
+	if err == nil {
+		t.Fatal("expected mismatch on empty binding")
+	}
+}
+
+func TestCredentialKeysSurviveYAML(t *testing.T) {
+	// covered in osg-core; smoke here via FilterSecrets empty semantics
+	if len(proxy.FilterSecrets(proxy.SecretStore{"A": "1"}, nil)) != 0 {
+		t.Fatal("empty bound keys must yield empty store")
 	}
 }
 

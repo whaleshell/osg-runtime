@@ -1,6 +1,6 @@
-// Package secrets defines a Store interface for future vault backends.
-// Live proxy rewrite uses proxy.SecretStore and env placeholders today;
-// this package is not wired into the sidecar yet.
+// Package secrets defines a Store interface for credential backends.
+// Gateway uses LocalEncrypted; the proxy sidecar resolves via gateway HTTP
+// (GET /v1/sandboxes/{name}/secrets) into proxy.SecretStore for rewrite.
 package secrets
 
 import (

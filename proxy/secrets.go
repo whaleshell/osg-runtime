@@ -14,10 +14,10 @@ import (
 type SecretStore map[string]string
 
 // FilterSecrets returns a copy of secrets limited to allowed keys.
-// Empty allowed means no filter (all keys).
+// Empty allowed means an empty store (no unbound rewrite) — OpenShell-style endpoint binding.
 func FilterSecrets(secrets SecretStore, allowed []string) SecretStore {
-	if len(allowed) == 0 || secrets == nil {
-		return secrets
+	if secrets == nil || len(allowed) == 0 {
+		return SecretStore{}
 	}
 	out := make(SecretStore, len(allowed))
 	for _, k := range allowed {
@@ -26,6 +26,103 @@ func FilterSecrets(secrets SecretStore, allowed []string) SecretStore {
 		}
 	}
 	return out
+}
+
+// ErrCredentialEndpointMismatch is returned when a placeholder is used on an
+// endpoint that does not bind that credential key (OpenShell credential_endpoint_mismatch).
+var ErrCredentialEndpointMismatch = fmt.Errorf("credential_endpoint_mismatch")
+
+// PlaceholderKeysInRequest lists env keys referenced by osg:/openshell:resolve:env markers
+// in path, query, and headers (including Basic).
+func PlaceholderKeysInRequest(req *http.Request) []string {
+	if req == nil {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	var out []string
+	add := func(s string) {
+		for _, k := range placeholderKeysInString(s) {
+			if _, ok := seen[k]; ok {
+				continue
+			}
+			seen[k] = struct{}{}
+			out = append(out, k)
+		}
+	}
+	if req.URL != nil {
+		add(req.URL.EscapedPath())
+		if dec, err := url.PathUnescape(req.URL.EscapedPath()); err == nil {
+			add(dec)
+		}
+		add(req.URL.RawQuery)
+	}
+	for _, vv := range req.Header {
+		for _, v := range vv {
+			add(v)
+			trimmed := strings.TrimSpace(v)
+			if strings.HasPrefix(strings.ToLower(trimmed), "basic ") {
+				enc := strings.TrimSpace(trimmed[6:])
+				if raw, err := base64.StdEncoding.DecodeString(enc); err == nil {
+					add(string(raw))
+				}
+			}
+		}
+	}
+	return out
+}
+
+func placeholderKeysInString(s string) []string {
+	if !env.ContainsPlaceholder(s) {
+		return nil
+	}
+	var out []string
+	rest := s
+	for {
+		i, prefixLen := env.IndexPlaceholder(rest)
+		if i < 0 {
+			break
+		}
+		rest = rest[i:]
+		if prefixLen > len(rest) {
+			break
+		}
+		j := prefixLen
+		for j < len(rest) {
+			c := rest[j]
+			if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' {
+				j++
+				continue
+			}
+			break
+		}
+		if j > prefixLen {
+			out = append(out, rest[prefixLen:j])
+		}
+		rest = rest[j:]
+	}
+	return out
+}
+
+// SecretsForEndpoint returns secrets allowed for rewrite on the matched endpoint.
+// Any placeholder key not listed in boundKeys fails closed with ErrCredentialEndpointMismatch.
+func SecretsForEndpoint(secrets SecretStore, boundKeys, usedKeys []string) (SecretStore, error) {
+	bound := map[string]struct{}{}
+	for _, k := range boundKeys {
+		k = strings.TrimSpace(k)
+		if k != "" {
+			bound[k] = struct{}{}
+		}
+	}
+	for _, k := range usedKeys {
+		k = strings.TrimSpace(k)
+		if k == "" {
+			continue
+		}
+		if _, ok := bound[k]; !ok {
+			return nil, fmt.Errorf("%w: key %q not bound to this endpoint", ErrCredentialEndpointMismatch, k)
+		}
+	}
+	return FilterSecrets(secrets, boundKeys), nil
 }
 
 // LoadSecretsFromEnviron builds a store from KEY=VAL entries (skips passthrough keys).

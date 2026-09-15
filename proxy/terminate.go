@@ -224,8 +224,33 @@ func (s *Server) mitmHTTPS(client net.Conn, clientBuf *bufio.Reader, backend net
 		}
 
 		rewSecrets := secrets
+		bound := []string(nil)
 		if dec.Matched != nil {
-			rewSecrets = FilterSecrets(secrets, dec.Matched.Rule.CredentialKeys)
+			bound = dec.Matched.Rule.CredentialKeys
+		}
+		used := PlaceholderKeysInRequest(req)
+		var bindErr error
+		rewSecrets, bindErr = SecretsForEndpoint(secrets, bound, used)
+		if bindErr != nil {
+			s.logAudit(auditEvent{
+				Action: "deny", Host: host, Port: port, Reason: bindErr.Error(), Allow: false,
+				Method: req.Method, Path: pathOnly, Binary: binary,
+			})
+			s.logAudit(auditEvent{
+				Action: "finding", Host: host, Port: port, Reason: "credential_endpoint_mismatch", Allow: false,
+				Method: req.Method, Path: pathOnly, Binary: binary,
+			})
+			msg := "osg-proxy: credential_endpoint_mismatch\n"
+			resp := &http.Response{
+				StatusCode: http.StatusForbidden,
+				ProtoMajor: 1, ProtoMinor: 1,
+				Header: make(http.Header),
+				Body:   io.NopCloser(strings.NewReader(msg)),
+			}
+			resp.Header.Set("Connection", "close")
+			_ = resp.Write(clientTLS)
+			_ = req.Body.Close()
+			return
 		}
 		if err := RewriteHTTPRequest(req, rewSecrets); err != nil {
 			s.logAudit(auditEvent{
@@ -291,11 +316,13 @@ func (s *Server) mitmHTTPS(client net.Conn, clientBuf *bufio.Reader, backend net
 		if wantWS && resp.StatusCode == http.StatusSwitchingProtocols {
 			wsRewrite := false
 			proto := ""
+			bound := []string(nil)
 			if mr := dec.Matched; mr != nil {
 				wsRewrite = mr.Rule.WebsocketCredentialRewrite
 				proto = mr.Rule.Protocol
+				bound = mr.Rule.CredentialKeys
 			}
-			s.relayWebsocket(clientBR, clientTLS, upBR, upTLS, host, port, pathOnly, eng, secrets, wsRewrite, proto, binary)
+			s.relayWebsocket(clientBR, clientTLS, upBR, upTLS, host, port, pathOnly, eng, secrets, bound, wsRewrite, proto, binary)
 			return
 		}
 		if strings.EqualFold(resp.Header.Get("Connection"), "close") || req.Close || resp.Close {
@@ -309,7 +336,7 @@ func isWebsocketUpgrade(req *http.Request) bool {
 		strings.Contains(strings.ToLower(req.Header.Get("Connection")), "upgrade")
 }
 
-func (s *Server) relayWebsocket(clientBR *bufio.Reader, client io.Writer, upBR *bufio.Reader, up io.Writer, host string, port int, pathOnly string, eng engine.PolicyEngine, secrets SecretStore, rewriteText bool, protocol string, binary string) {
+func (s *Server) relayWebsocket(clientBR *bufio.Reader, client io.Writer, upBR *bufio.Reader, up io.Writer, host string, port int, pathOnly string, eng engine.PolicyEngine, secrets SecretStore, boundKeys []string, rewriteText bool, protocol string, binary string) {
 	errCh := make(chan struct{}, 2)
 	go func() {
 		defer func() { errCh <- struct{}{} }()
@@ -362,7 +389,17 @@ func (s *Server) relayWebsocket(clientBR *bufio.Reader, client io.Writer, upBR *
 					})
 				}
 				if rewriteText && ContainsPlaceholder(string(payload)) {
-					text, err := RewriteText(string(payload), secrets)
+					used := placeholderKeysInString(string(payload))
+					rew, bindErr := SecretsForEndpoint(secrets, boundKeys, used)
+					if bindErr != nil {
+						s.logAudit(auditEvent{
+							Action: "deny", Host: host, Port: port, Reason: bindErr.Error(), Allow: false,
+							Method: method, Path: pathOnly,
+						})
+						_ = writeWSFrame(client, wsOpcodeClose, []byte{0x03, 0xef}, false)
+						return
+					}
+					text, err := RewriteText(string(payload), rew)
 					if err != nil {
 						s.logAudit(auditEvent{
 							Action: "deny", Host: host, Port: port, Reason: "ws credential rewrite: " + err.Error(), Allow: false,
