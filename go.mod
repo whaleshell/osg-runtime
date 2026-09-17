@@ -9,12 +9,10 @@ require (
 	github.com/zorneth/osg-proxy v0.0.0
 	golang.org/x/crypto v0.56.0
 	golang.org/x/sys v0.48.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
-require (
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-	kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
-)
+require kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
 
 replace (
 	github.com/zorneth/osg-core => ../osg-core

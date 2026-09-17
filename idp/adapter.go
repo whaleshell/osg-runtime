@@ -24,7 +24,7 @@ type Adapter interface {
 }
 
 // ErrNotImplemented is returned by Stub for Token/Validate.
-var ErrNotImplemented = errors.New("idp: adapter not implemented — see docs/ECOSYSTEM.md")
+var ErrNotImplemented = errors.New("idp: adapter not implemented — see docs/exp/ECOSYSTEM.md")
 
 // Stub is a no-op Adapter placeholder until a real OIDC/mTLS backend lands.
 type Stub struct {

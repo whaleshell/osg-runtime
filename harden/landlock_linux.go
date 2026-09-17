@@ -55,7 +55,7 @@ func applyLandlock(doc policy.Document) error {
 	if doc.HardenMode() == "required" {
 		cfg = ll.V5
 	}
-	rules := make([]ll.PathOpt, 0, 2)
+	rules := make([]ll.PathOpt, 0, 2) //nolint:staticcheck // PathOpt kept until landlock major drop of alias
 	if ro := existing(reads); len(ro) > 0 {
 		rules = append(rules, ll.RODirs(ro...))
 	}
