@@ -41,13 +41,35 @@ jobs:
           - target: gpu
             name: gpu
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout osg-runtime
+        uses: actions/checkout@v4
+        with:
+          path: osg-runtime
+      - name: Checkout osg-core
+        uses: actions/checkout@v4
+        with:
+          repository: zorneth/osg-core
+          path: osg-core
+          ref: main
+      - name: Checkout osg-driver
+        uses: actions/checkout@v4
+        with:
+          repository: zorneth/osg-driver
+          path: osg-driver
+          ref: main
+      - name: Checkout osg-proxy
+        uses: actions/checkout@v4
+        with:
+          repository: zorneth/osg-proxy
+          path: osg-proxy
+          ref: main
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27"
           cache: true
       - uses: docker/setup-buildx-action@v3
       - name: Build osg-init into image context
+        working-directory: osg-runtime
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/osg-init ./cmd/osg-init
       - name: Login GHCR
@@ -70,8 +92,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: images/sandbox
-          file: images/sandbox/Dockerfile
+          context: osg-runtime/images/sandbox
+          file: osg-runtime/images/sandbox/Dockerfile
           target: ${{ matrix.target }}
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
