@@ -68,13 +68,13 @@ func WriteLocalSnippet(w io.Writer) error {
 	_, err := io.WriteString(w, `# Host-local models (no inference.local rewrite proxy).
 # Agents call http://host.osg.internal:<port>/v1/... (or host.docker.internal).
 version: 1
-filesystem:
+filesystem_policy:
   include_workdir: true
-  read: [/usr, /lib, /proc, /etc]
-  write: [/tmp]
-  mode: best_effort
-network:
-  default: deny
+  read_only: [/usr, /lib, /proc, /etc]
+  read_write: [/tmp]
+landlock:
+  compatibility: best_effort
+network_policies: {}
 inference:
   providers: [local]
   # Or pin one server via profiles:

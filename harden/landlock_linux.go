@@ -28,15 +28,15 @@ func landlockABI() (int, error) {
 func applyLandlock(doc policy.Document) error {
 	reads := []string{"/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/proc", "/dev", "/sys", "/app", "/osg", "/tmp", "/var", "/home", "/run"}
 	writes := []string{"/tmp", "/dev/null", "/dev/zero", "/dev/urandom", "/dev/tty", "/workspace", "/run", "/home", "/var/tmp"}
-	if doc.Filesystem != nil {
-		if len(doc.Filesystem.Read) > 0 {
-			reads = append([]string{}, doc.Filesystem.Read...)
+	if doc.FilesystemPolicy != nil {
+		if len(doc.FilesystemPolicy.ReadOnly) > 0 {
+			reads = append([]string{}, doc.FilesystemPolicy.ReadOnly...)
 			reads = append(reads, "/proc", "/dev", "/osg", "/tmp")
 		}
-		if len(doc.Filesystem.Write) > 0 {
-			writes = append([]string{}, doc.Filesystem.Write...)
+		if len(doc.FilesystemPolicy.ReadWrite) > 0 {
+			writes = append([]string{}, doc.FilesystemPolicy.ReadWrite...)
 		}
-		if doc.Filesystem.IncludeWorkdir {
+		if doc.FilesystemPolicy.IncludeWorkdir {
 			writes = append(writes, "/workspace")
 		}
 	}

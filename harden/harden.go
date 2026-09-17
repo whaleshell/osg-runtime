@@ -123,7 +123,7 @@ func shouldDrop(doc policy.Document) bool {
 	if os.Getenv("OSG_DROP") == "1" {
 		return true
 	}
-	return doc.Process != nil && (doc.Process.User != "" || doc.Process.Group != "")
+	return doc.ProcessUser() != "" || doc.ProcessGroup() != ""
 }
 
 // Probe reports Landlock ABI without applying a full policy.

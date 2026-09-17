@@ -8,8 +8,8 @@ import (
 
 	"github.com/zorneth/osg-core"
 	"github.com/zorneth/osg-core/policy"
-	"github.com/zorneth/osg-runtime/driver"
-	"github.com/zorneth/osg-runtime/proxy"
+	"github.com/zorneth/osg-driver/driver"
+	"github.com/zorneth/osg-proxy/proxy"
 )
 
 // Manager owns sandbox lifecycle for one host.

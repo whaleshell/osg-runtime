@@ -7,7 +7,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -16,13 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-)
-
-const (
-	envKEK     = "OSG_SECRETS_KEK"
-	kekFile    = "secrets.kek"
-	storeFile  = "secrets.enc.json"
-	kekBytes   = 32
 )
 
 // LocalEncrypted is an AES-GCM file-backed Store keyed by logical names
@@ -45,7 +37,7 @@ func OpenLocal(dir string) (*LocalEncrypted, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
-	kek, err := loadOrCreateKEK(dir)
+	kek, err := loadOrCreateKEK(dir, os.Getenv)
 	if err != nil {
 		return nil, err
 	}
@@ -68,19 +60,19 @@ func OpenLocal(dir string) (*LocalEncrypted, error) {
 	return s, nil
 }
 
-func loadOrCreateKEK(dir string) ([]byte, error) {
-	if v := strings.TrimSpace(os.Getenv(envKEK)); v != "" {
-		if b, err := base64.StdEncoding.DecodeString(v); err == nil && len(b) >= 16 {
-			sum := sha256.Sum256(b)
-			return sum[:], nil
-		}
-		// treat as opaque passphrase material
-		sum := sha256.Sum256([]byte(v))
-		return sum[:], nil
+// loadOrCreateKEK resolves the KEK using Inspect order: env → file → generate file.
+func loadOrCreateKEK(dir string, getenv func(string) string) ([]byte, error) {
+	if getenv == nil {
+		getenv = os.Getenv
 	}
-	path := filepath.Join(dir, kekFile)
+	if v := strings.TrimSpace(getenv(EnvKEK)); v != "" {
+		return ParseEnvKEK(v)
+	}
+	path := filepath.Join(dir, FileKEK)
 	if b, err := os.ReadFile(path); err == nil && len(b) >= kekBytes {
-		return b[:kekBytes], nil
+		out := make([]byte, kekBytes)
+		copy(out, b[:kekBytes])
+		return out, nil
 	}
 	b := make([]byte, kekBytes)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
@@ -93,7 +85,7 @@ func loadOrCreateKEK(dir string) ([]byte, error) {
 }
 
 func (s *LocalEncrypted) loadLocked() error {
-	path := filepath.Join(s.dir, storeFile)
+	path := filepath.Join(s.dir, FileStore)
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -127,7 +119,7 @@ func (s *LocalEncrypted) flushLocked() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(s.dir, storeFile)
+	path := filepath.Join(s.dir, FileStore)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, raw, 0o600); err != nil {
 		return err

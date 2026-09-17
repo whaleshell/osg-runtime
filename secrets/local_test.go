@@ -36,7 +36,7 @@ func TestLocalEncryptedRoundTrip(t *testing.T) {
 	if err != nil || v != "crsr_test" {
 		t.Fatalf("reopen: %q %v", v, err)
 	}
-	raw, _ := os.ReadFile(filepath.Join(dir, storeFile))
+	raw, _ := os.ReadFile(filepath.Join(dir, FileStore))
 	if strings.Contains(string(raw), "crsr_test") {
 		t.Fatal("plaintext leaked into secrets.enc.json")
 	}
