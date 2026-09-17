@@ -4,9 +4,9 @@ go 1.27.0
 
 require (
 	github.com/landlock-lsm/go-landlock v0.10.0
-	github.com/zorneth/osg-core v0.0.0
-	github.com/zorneth/osg-driver v0.0.0
-	github.com/zorneth/osg-proxy v0.0.0
+	github.com/zorneth/osg-core v0.1.0-alpha.1
+	github.com/zorneth/osg-driver v0.1.0-alpha.1
+	github.com/zorneth/osg-proxy v0.1.0-alpha.1
 	golang.org/x/crypto v0.56.0
 	golang.org/x/sys v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
