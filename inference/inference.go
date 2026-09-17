@@ -66,7 +66,7 @@ func ShowEffective(w io.Writer, doc policy.Document) error {
 // WriteLocalSnippet prints a ready-to-use host-local inference policy fragment.
 func WriteLocalSnippet(w io.Writer) error {
 	_, err := io.WriteString(w, `# Host-local models (no inference.local rewrite proxy).
-# Agents call http://host.osg.internal:<port>/v1/... (or host.docker.internal).
+# Agents call http://host.osg.internal:<port>/v1/...
 version: 1
 filesystem_policy:
   include_workdir: true

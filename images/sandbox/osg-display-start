@@ -28,7 +28,7 @@ x11vnc -display "$DISPLAY" -forever -shared -rfbport "$RFB_PORT" -localhost \
   -passwdfile "$PASSFILE" -quiet >/tmp/osg-display/x11vnc.log 2>&1 &
 
 if [ ! -d "$NOVNC_WEB" ]; then
-  # Ubuntu novnc package layout fallback
+  # alternate novnc package layout
   for d in /usr/share/novnc /usr/share/novnc/utils/..; do
     if [ -d "$d" ]; then NOVNC_WEB="$d"; break; fi
   done
