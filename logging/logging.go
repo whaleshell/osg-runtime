@@ -34,7 +34,7 @@ func Setup(ctx context.Context, opt Options) *slogx.Logger {
 		opt.Output = os.Stderr
 	}
 
-	format := slogx.FormatJSON
+	var format slogx.Format
 	if opt.Dev {
 		format = slogx.FormatText
 	} else if opt.Format != "" {
