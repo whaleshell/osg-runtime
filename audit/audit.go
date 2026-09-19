@@ -40,7 +40,7 @@ func (e WriterEmitter) Emit(ev Event) {
 	_, _ = fmt.Fprintln(w, Format(ev))
 }
 
-// SlogEmitter is a slog-backed emitter for MVP.
+// SlogEmitter is a slog-backed emitter for MVP (works with slogx via slog.Default).
 type SlogEmitter struct {
 	Log *slog.Logger
 }
@@ -48,7 +48,7 @@ type SlogEmitter struct {
 // Emit logs the event at Info level with OCSF shorthand in the message.
 func (e SlogEmitter) Emit(ev Event) {
 	if e.Log == nil {
-		return
+		e.Log = slog.Default()
 	}
 	e.Log.Info(Format(ev))
 }

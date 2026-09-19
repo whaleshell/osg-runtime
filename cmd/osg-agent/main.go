@@ -1,4 +1,4 @@
-// Command osg-agent dials the gateway relay WebSocket and runs exec requests.
+// Command osg-agent dials the gateway relay and runs exec requests.
 package main
 
 import (
@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/zorneth/osg-runtime/logging"
 )
 
 func main() {
@@ -22,6 +24,10 @@ func main() {
 }
 
 func run(args []string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	log := logging.Setup(ctx, logging.Options{Service: "osg-agent"})
+
 	gateway := os.Getenv("OSG_GATEWAY")
 	name := os.Getenv("OSG_SANDBOX")
 	for i := 0; i < len(args); i++ {
@@ -43,16 +49,16 @@ func run(args []string) error {
 		return fmt.Errorf("osg-agent: --gateway and --name required")
 	}
 	base := strings.TrimRight(gateway, "/")
-	fmt.Fprintf(os.Stderr, "osg-agent: registering %s at %s\n", name, base)
+	log.Info("registering", "sandbox", name, "gateway", base)
 
 	// Long-poll style relay: poll for jobs, post results (works without gorilla/websocket).
 	client := &http.Client{Timeout: 65 * time.Second}
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		job, err := pollJob(ctx, client, base, name)
-		cancel()
+		pollCtx, pollCancel := context.WithTimeout(ctx, 60*time.Second)
+		job, err := pollJob(pollCtx, client, base, name)
+		pollCancel()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "osg-agent: poll: %v\n", err)
+			log.Warn("poll failed", "error", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}

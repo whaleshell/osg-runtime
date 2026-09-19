@@ -3,6 +3,7 @@ module github.com/zorneth/osg-runtime
 go 1.27.0
 
 require (
+	github.com/glaciforge/slogx v0.0.0
 	github.com/landlock-lsm/go-landlock v0.10.0
 	github.com/zorneth/osg-core v0.1.0-alpha.1
 	github.com/zorneth/osg-driver v0.1.0-alpha.1
@@ -12,9 +13,18 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
+require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/lkmavi/saferefl v0.4.0 // indirect
+	go.opentelemetry.io/otel v1.46.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.46.0 // indirect
+	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
+)
 
 replace (
+	github.com/glaciforge/slogx => ../slogx
 	github.com/zorneth/osg-core => ../osg-core
 	github.com/zorneth/osg-driver => ../osg-driver
 	github.com/zorneth/osg-proxy => ../osg-proxy
