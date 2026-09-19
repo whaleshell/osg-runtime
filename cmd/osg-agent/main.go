@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/zorneth/osg-runtime/logging"
+	"github.com/zorneth/slogx"
 )
 
 func main() {
@@ -24,9 +26,12 @@ func main() {
 }
 
 func run(args []string) error {
+	const op = "agent.run"
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	log := logging.Setup(ctx, logging.Options{Service: "osg-agent"})
+	ctx = logging.ToContext(ctx, log)
+	log = log.With(slog.String("op", op))
 
 	gateway := os.Getenv("OSG_GATEWAY")
 	name := os.Getenv("OSG_SANDBOX")
@@ -49,7 +54,7 @@ func run(args []string) error {
 		return fmt.Errorf("osg-agent: --gateway and --name required")
 	}
 	base := strings.TrimRight(gateway, "/")
-	log.Info("registering", "sandbox", name, "gateway", base)
+	log.Info("registering with gateway", slog.String("sandbox", name), slog.String("gateway", base))
 
 	// Long-poll style relay: poll for jobs, post results (works without gorilla/websocket).
 	client := &http.Client{Timeout: 65 * time.Second}
@@ -58,15 +63,21 @@ func run(args []string) error {
 		job, err := pollJob(pollCtx, client, base, name)
 		pollCancel()
 		if err != nil {
-			log.Warn("poll failed", "error", err)
+			log.Warn("poll failed", slogx.Err(err))
 			time.Sleep(2 * time.Second)
 			continue
 		}
 		if job == nil {
 			continue
 		}
+		jobLog := log.With(slog.String("job_id", job.ID), slog.Int("argv_len", len(job.Argv)))
+		jobLog.Info("executing relay job")
 		out, code := runJob(job.Argv)
-		_ = postResult(client, base, name, job.ID, out, code)
+		if err := postResult(client, base, name, job.ID, out, code); err != nil {
+			jobLog.Error("failed to post job result", slogx.Err(err), slog.Int("exit_code", code))
+			continue
+		}
+		jobLog.Info("job completed", slog.Int("exit_code", code), slog.Int("output_bytes", len(out)))
 	}
 }
 
@@ -76,9 +87,13 @@ type job struct {
 }
 
 func pollJob(ctx context.Context, client *http.Client, base, name string) (*job, error) {
+	const op = "agent.pollJob"
+	log := logging.FromContext(ctx).With(slog.String("op", op), slog.String("sandbox", name))
+
 	u := base + "/v1/relay/" + url.PathEscape(name) + "/poll"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
+		log.Error("failed to build poll request", slogx.Err(err))
 		return nil, err
 	}
 	res, err := client.Do(req)
@@ -90,12 +105,16 @@ func pollJob(ctx context.Context, client *http.Client, base, name string) (*job,
 		return nil, nil
 	}
 	if res.StatusCode >= 300 {
-		return nil, fmt.Errorf("%s", res.Status)
+		err := fmt.Errorf("%s", res.Status)
+		log.Error("poll returned error status", slogx.Err(err), slog.Int("status", res.StatusCode))
+		return nil, err
 	}
 	var j job
 	if err := json.NewDecoder(res.Body).Decode(&j); err != nil {
+		log.Error("failed to decode poll response", slogx.Err(err))
 		return nil, err
 	}
+	log.Info("job received", slog.String("job_id", j.ID))
 	return &j, nil
 }
 
