@@ -3,7 +3,7 @@ module github.com/zorneth/osg-runtime
 go 1.27.0
 
 require (
-	github.com/glaciforge/slogx v0.0.0
+	github.com/zorneth/slogx v0.0.0
 	github.com/landlock-lsm/go-landlock v0.10.0
 	github.com/zorneth/osg-core v0.1.0-alpha.1
 	github.com/zorneth/osg-driver v0.1.0-alpha.1
@@ -24,7 +24,7 @@ require (
 )
 
 replace (
-	github.com/glaciforge/slogx => ../slogx
+	github.com/zorneth/slogx => ../slogx
 	github.com/zorneth/osg-core => ../osg-core
 	github.com/zorneth/osg-driver => ../osg-driver
 	github.com/zorneth/osg-proxy => ../osg-proxy

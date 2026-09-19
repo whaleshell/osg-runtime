@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/glaciforge/slogx"
+	"github.com/zorneth/slogx"
 )
 
 // Env keys (optional).
