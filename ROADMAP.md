@@ -1,6 +1,6 @@
-# Roadmap — osg-runtime
+# Roadmap — whaleshell-runtime
 
-Status: **v0.1.0-alpha.1** (alpha) · Depends on osg-core / osg-driver / osg-proxy `v0.1.0-alpha.1`
+Status: **v0.1.0-alpha.1** (alpha) · Depends on whaleshell-core / whaleshell-driver / whaleshell-proxy `v0.1.0-alpha.1`
 
 ## This module
 

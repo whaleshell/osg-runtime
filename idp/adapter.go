@@ -1,5 +1,5 @@
 // Package idp defines control-plane identity adapters (OIDC / mTLS).
-// Stub fails closed until a real backend is wired into osg-gateway.
+// Stub fails closed until a real backend is wired into whaleshell-gateway.
 package idp
 
 import (

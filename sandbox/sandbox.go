@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/zorneth/osg-core"
-	"github.com/zorneth/osg-core/policy"
-	"github.com/zorneth/osg-driver/driver"
-	"github.com/zorneth/osg-proxy/proxy"
+	"github.com/whaleshell/whaleshell-core"
+	"github.com/whaleshell/whaleshell-core/policy"
+	"github.com/whaleshell/whaleshell-driver/driver"
+	"github.com/whaleshell/whaleshell-proxy/proxy"
 )
 
 // Manager owns sandbox lifecycle for one host.

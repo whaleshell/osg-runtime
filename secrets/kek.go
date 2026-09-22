@@ -12,7 +12,7 @@ import (
 
 // Well-known secrets paths / env (single source of truth — do not hardcode elsewhere).
 const (
-	EnvKEK    = "OSG_SECRETS_KEK"
+	EnvKEK    = "WHALESHELL_SECRETS_KEK"
 	FileKEK   = "secrets.kek"
 	FileStore = "secrets.enc.json"
 	kekBytes  = 32
@@ -28,7 +28,7 @@ const (
 )
 
 // Status describes KEK durability for doctor /gateway info.
-// Pinned is true when OSG_SECRETS_KEK is set (survives empty data-dir recreate
+// Pinned is true when WHALESHELL_SECRETS_KEK is set (survives empty data-dir recreate
 // as long as the same env is supplied). File-backed KEK survives volume recreate
 // but is lost if the volume is deleted without a pinned env.
 type Status struct {
@@ -61,7 +61,7 @@ func DeriveKEK(material []byte) []byte {
 	return out
 }
 
-// ParseEnvKEK decodes OSG_SECRETS_KEK values.
+// ParseEnvKEK decodes WHALESHELL_SECRETS_KEK values.
 // Accepts raw passphrase, standard base64, or hex (≥16 bytes decoded).
 func ParseEnvKEK(v string) ([]byte, error) {
 	v = strings.TrimSpace(v)

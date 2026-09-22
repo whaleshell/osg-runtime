@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+# SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 # SPDX-License-Identifier: MIT
 #
 # In-sandbox agent entrypoint (OpenShell-style role; MIT original).

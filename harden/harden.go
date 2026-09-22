@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/zorneth/osg-core/policy"
+	"github.com/whaleshell/whaleshell-core/policy"
 )
 
 // Mode controls fail-closed vs loud best-effort.
@@ -65,11 +65,11 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 
 	abi, err := landlockABI()
 	res.LandlockABI = abi
-	verbose := os.Getenv("OSG_HARDEN_VERBOSE") == "1"
+	verbose := os.Getenv("WHALESHELL_HARDEN_VERBOSE") == "1"
 	quietBestEffort := !verbose && opts.Mode == ModeBestEffort
 	if err != nil {
 		res.LandlockError = err.Error()
-		msg := fmt.Sprintf("osg-init: landlock unavailable: %v", err)
+		msg := fmt.Sprintf("whaleshell-init: landlock unavailable: %v", err)
 		if opts.Mode == ModeRequired {
 			fmt.Fprintln(opts.Log, msg+" (mode=required → fail)")
 			return res, fmt.Errorf("harden: landlock required: %w", err)
@@ -80,7 +80,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 	} else {
 		if err := applyLandlock(opts.Doc); err != nil {
 			res.LandlockError = err.Error()
-			msg := fmt.Sprintf("osg-init: landlock apply failed: %v", err)
+			msg := fmt.Sprintf("whaleshell-init: landlock apply failed: %v", err)
 			if opts.Mode == ModeRequired {
 				fmt.Fprintln(opts.Log, msg+" (mode=required → fail)")
 				return res, fmt.Errorf("harden: landlock: %w", err)
@@ -91,7 +91,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 		} else {
 			res.LandlockApplied = true
 			if verbose {
-				fmt.Fprintf(opts.Log, "osg-init: landlock applied (abi≥%d)\n", abi)
+				fmt.Fprintf(opts.Log, "whaleshell-init: landlock applied (abi≥%d)\n", abi)
 			}
 		}
 	}
@@ -99,7 +99,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 	if !opts.NoDrop && shouldDrop(opts.Doc) {
 		if err := dropPrivileges(); err != nil {
 			res.DropError = err.Error()
-			msg := fmt.Sprintf("osg-init: privilege drop failed: %v", err)
+			msg := fmt.Sprintf("whaleshell-init: privilege drop failed: %v", err)
 			if opts.Mode == ModeRequired {
 				fmt.Fprintln(opts.Log, msg+" (mode=required → fail)")
 				return res, fmt.Errorf("harden: drop: %w", err)
@@ -110,7 +110,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 		} else {
 			res.DropApplied = true
 			if verbose {
-				fmt.Fprintln(opts.Log, "osg-init: privileges dropped")
+				fmt.Fprintln(opts.Log, "whaleshell-init: privileges dropped")
 			}
 		}
 	}
@@ -120,7 +120,7 @@ func Apply(ctx context.Context, opts Options) (Result, error) {
 }
 
 func shouldDrop(doc policy.Document) bool {
-	if os.Getenv("OSG_DROP") == "1" {
+	if os.Getenv("WHALESHELL_DROP") == "1" {
 		return true
 	}
 	return doc.ProcessUser() != "" || doc.ProcessGroup() != ""

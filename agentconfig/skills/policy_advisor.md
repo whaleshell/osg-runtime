@@ -1,10 +1,10 @@
-# SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+# SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 # SPDX-License-Identifier: MIT
 
-# osg Policy Advisor
+# whaleshell Policy Advisor
 
 Use this when the sandbox proxy blocks a network request (CONNECT 403 /
-`policy_denied`, or deny lines in `osg logs`).
+`policy_denied`, or deny lines in `whaleshell logs`).
 
 ## Goal
 
@@ -28,7 +28,7 @@ The operator approves; do not bypass the proxy.
 3. Prefer L7 `protocol: rest` or `protocol: mcp` with exact method/path/tool.
 4. `POST /v1/proposals` with one narrow `addRule`.
 5. Tell the operator the `chunk_id`. They run:
-   `osg rule approve --chunk-id <id>` (or `osg rule reject --chunk-id <id> --reason …`).
+   `whaleshell rule approve --chunk-id <id>` (or `whaleshell rule reject --chunk-id <id> --reason …`).
 6. `GET /v1/proposals/{id}/wait?timeout=300`:
    - `approved` + `policy_reloaded: true` → retry the original request.
    - `approved` + `policy_reloaded: false` → wait once more (`timeout=30`).

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	ll "github.com/landlock-lsm/go-landlock/landlock"
-	"github.com/zorneth/osg-core/policy"
+	"github.com/whaleshell/whaleshell-core/policy"
 	"golang.org/x/sys/unix"
 )
 
@@ -26,12 +26,12 @@ func landlockABI() (int, error) {
 }
 
 func applyLandlock(doc policy.Document) error {
-	reads := []string{"/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/proc", "/dev", "/sys", "/app", "/osg", "/tmp", "/var", "/home", "/run"}
+	reads := []string{"/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/proc", "/dev", "/sys", "/app", "/whaleshell", "/tmp", "/var", "/home", "/run"}
 	writes := []string{"/tmp", "/dev/null", "/dev/zero", "/dev/urandom", "/dev/tty", "/workspace", "/run", "/home", "/var/tmp"}
 	if doc.FilesystemPolicy != nil {
 		if len(doc.FilesystemPolicy.ReadOnly) > 0 {
 			reads = append([]string{}, doc.FilesystemPolicy.ReadOnly...)
-			reads = append(reads, "/proc", "/dev", "/osg", "/tmp")
+			reads = append(reads, "/proc", "/dev", "/whaleshell", "/tmp")
 		}
 		if len(doc.FilesystemPolicy.ReadWrite) > 0 {
 			writes = append([]string{}, doc.FilesystemPolicy.ReadWrite...)
@@ -43,11 +43,11 @@ func applyLandlock(doc policy.Document) error {
 	if doc.Display != nil && strings.EqualFold(doc.Display.Mode, "novnc") {
 		reads = append(reads, "/tmp/.X11-unix", "/usr/share", "/usr/lib",
 			"/etc/chromium", "/usr/lib/chromium", "/usr/bin/chromium")
-		writes = append(writes, "/tmp/.X11-unix", "/tmp/osg-display", "/home", "/run/user")
+		writes = append(writes, "/tmp/.X11-unix", "/tmp/whaleshell-display", "/home", "/run/user")
 	}
 	// Always allow X11 socket dir when present (gui boot / best_effort).
 	reads = append(reads, "/tmp/.X11-unix")
-	writes = append(writes, "/tmp/.X11-unix", "/tmp/osg-display")
+	writes = append(writes, "/tmp/.X11-unix", "/tmp/whaleshell-display")
 	reads = unique(reads)
 	writes = unique(writes)
 

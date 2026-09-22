@@ -1,5 +1,5 @@
-// Command osg-sshd is a minimal SSH server for sandbox connect --ssh.
-package main
+// Package sshd is the composition root for whaleshell-sshd.
+package sshd
 
 import (
 	"crypto/ed25519"
@@ -11,18 +11,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/zorneth/osg-core/defaults"
+	"github.com/whaleshell/whaleshell-core/defaults"
 	"golang.org/x/crypto/ssh"
 )
 
-func main() {
-	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func run(args []string) error {
+func Run(args []string) error {
 	listen := fmt.Sprintf("%s:%d", defaults.ProxyListenHost, defaults.GuestSSHPort)
 	authKeys := defaults.GuestSSHAuthorizedKeys
 	hostKeyPath := defaults.GuestSSHHostKey
@@ -38,7 +31,7 @@ func run(args []string) error {
 			i++
 			hostKeyPath = args[i]
 		case "-h", "--help":
-			fmt.Fprintf(os.Stderr, "usage: osg-sshd [--listen ADDR] [--authorized-keys FILE] [--host-key FILE]\n")
+			fmt.Fprintf(os.Stderr, "usage: whaleshell-sshd [--listen ADDR] [--authorized-keys FILE] [--host-key FILE]\n")
 			return nil
 		default:
 			return fmt.Errorf("unknown flag %q", args[i])
@@ -67,7 +60,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "osg-sshd: listening on %s\n", listen)
+	fmt.Fprintf(os.Stderr, "whaleshell-sshd: listening on %s\n", listen)
 	for {
 		c, err := ln.Accept()
 		if err != nil {

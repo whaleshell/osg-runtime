@@ -1,4 +1,4 @@
-// Package logging configures structured process logs for osg binaries via slogx.
+// Package logging configures structured process logs for whaleshell binaries via slogx.
 package logging
 
 import (
@@ -8,14 +8,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/zorneth/slogx"
+	"github.com/whaleshell/slogx"
 )
 
 // Env keys (optional).
 const (
-	EnvLogLevel     = "OSG_LOG_LEVEL"      // trace|debug|info|warn|error|fatal
-	EnvLogFormat    = "OSG_LOG_FORMAT"     // json|text
-	EnvLogLevelAddr = "OSG_LOG_LEVEL_ADDR" // e.g. 127.0.0.1:9099 for live level HTTP
+	EnvLogLevel     = "WHALESHELL_LOG_LEVEL"      // trace|debug|info|warn|error|fatal
+	EnvLogFormat    = "WHALESHELL_LOG_FORMAT"     // json|text
+	EnvLogLevelAddr = "WHALESHELL_LOG_LEVEL_ADDR" // e.g. 127.0.0.1:9099 for live level HTTP
 )
 
 // Options tweak Setup.

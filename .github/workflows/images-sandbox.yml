@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2026 the osg authors
+# SPDX-FileCopyrightText: Copyright (c) 2026 the whaleshell authors
 # SPDX-License-Identifier: MIT
 name: images-sandbox
 
@@ -8,13 +8,13 @@ on:
     tags: ["v*"]
     paths:
       - "images/**"
-      - "cmd/osg-init/**"
+      - "cmd/whaleshell-init/**"
       - "harden/**"
       - ".github/workflows/images-sandbox.yml"
   pull_request:
     paths:
       - "images/**"
-      - "cmd/osg-init/**"
+      - "cmd/whaleshell-init/**"
       - "harden/**"
       - ".github/workflows/images-sandbox.yml"
   workflow_dispatch:
@@ -27,6 +27,7 @@ env:
   REGISTRY: ghcr.io
   # OpenShell-style: one image name per flavor under …/sandboxes/<name>
   IMAGE_PREFIX: ghcr.io/zorneth/osg/sandboxes
+  GOWORK: ${{ github.workspace }}/go.work
 
 jobs:
   build:
@@ -41,27 +42,27 @@ jobs:
           - target: gpu
             name: gpu
     steps:
-      - name: Checkout osg-runtime
+      - name: Checkout whaleshell-runtime
         uses: actions/checkout@v4
         with:
-          path: osg-runtime
-      - name: Checkout osg-core
+          path: whaleshell-runtime
+      - name: Checkout whaleshell-core
         uses: actions/checkout@v4
         with:
           repository: zorneth/osg-core
-          path: osg-core
+          path: whaleshell-core
           ref: main
-      - name: Checkout osg-driver
+      - name: Checkout whaleshell-driver
         uses: actions/checkout@v4
         with:
           repository: zorneth/osg-driver
-          path: osg-driver
+          path: whaleshell-driver
           ref: main
-      - name: Checkout osg-proxy
+      - name: Checkout whaleshell-proxy
         uses: actions/checkout@v4
         with:
           repository: zorneth/osg-proxy
-          path: osg-proxy
+          path: whaleshell-proxy
           ref: main
 
       - name: Checkout slogx
@@ -69,15 +70,40 @@ jobs:
         with:
           repository: zorneth/slogx
           path: slogx
+      - name: Write go.work
+        run: |
+          set -euo pipefail
+          {
+            echo 'go 1.27.0'
+            echo 'use ('
+            for d in whaleshell-* slogx; do
+              if [[ -d "$d" ]]; then
+                echo "  ./$d"
+              fi
+            done
+            echo ')'
+            echo 'replace ('
+            for d in whaleshell-*; do
+              if [[ -d "$d" ]]; then
+                echo "  github.com/whaleshell/${d} v0.1.0-alpha.1 => ./$d"
+              fi
+            done
+            if [[ -d slogx ]]; then
+              echo '  github.com/whaleshell/slogx v0.1.0-alpha.1 => ./slogx'
+            fi
+            echo ')'
+          } > "${{ github.workspace }}/go.work"
+          echo "Wrote go.work:" && cat "${{ github.workspace }}/go.work"
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.27"
           cache: true
       - uses: docker/setup-buildx-action@v3
-      - name: Build osg-init into image context
-        working-directory: osg-runtime
+      - name: Build whaleshell-init into image context
+        working-directory: whaleshell-runtime
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/osg-init ./cmd/osg-init
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o images/sandbox/whaleshell-init ./cmd/whaleshell-init
       - name: Login GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -98,8 +124,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: osg-runtime/images/sandbox
-          file: osg-runtime/images/sandbox/Dockerfile
+          context: whaleshell-runtime/images/sandbox
+          file: whaleshell-runtime/images/sandbox/Dockerfile
           target: ${{ matrix.target }}
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}

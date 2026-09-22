@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+// SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 // SPDX-License-Identifier: MIT
 
 package agentconfig
@@ -102,7 +102,7 @@ func LoadManifest(path string) (Manifest, string, error) {
 
 // Stage builds a host directory tree for injection.
 func Stage(opt Options) (Staged, error) {
-	root, err := os.MkdirTemp("", "osg-agentconfig-*")
+	root, err := os.MkdirTemp("", "whaleshell-agentconfig-*")
 	if err != nil {
 		return Staged{}, err
 	}
@@ -114,11 +114,11 @@ func Stage(opt Options) (Staged, error) {
 		}
 	}()
 
-	skillsDir := filepath.Join(root, "osg", "skills")
+	skillsDir := filepath.Join(root, "whaleshell", "skills")
 	if err := os.MkdirAll(skillsDir, 0o755); err != nil {
 		return Staged{}, err
 	}
-	payloadDir := filepath.Join(root, "osg", "agent-payload")
+	payloadDir := filepath.Join(root, "whaleshell", "agent-payload")
 	if err := os.MkdirAll(payloadDir, 0o755); err != nil {
 		return Staged{}, err
 	}
@@ -236,7 +236,7 @@ func Stage(opt Options) (Staged, error) {
 		if err := writeBuiltinRuntime(payloadDir); err != nil {
 			return Staged{}, err
 		}
-		envSnippet := fmt.Sprintf("OSG_AGENT_HARNESS=%s\nOSG_AGENT_RUN_MODE=%s\n", harness, mode)
+		envSnippet := fmt.Sprintf("WHALESHELL_AGENT_HARNESS=%s\nWHALESHELL_AGENT_RUN_MODE=%s\n", harness, mode)
 		if err := os.WriteFile(filepath.Join(payloadDir, "runtime.env"), []byte(envSnippet), 0o644); err != nil {
 			return Staged{}, err
 		}
@@ -274,14 +274,14 @@ func Stage(opt Options) (Staged, error) {
 			return Staged{}, err
 		}
 	} else if wantRuntime {
-		def := "# osg agent prompt\n\nSummarize the workspace and wait for operator instructions.\n"
+		def := "# whaleshell agent prompt\n\nSummarize the workspace and wait for operator instructions.\n"
 		if err := os.WriteFile(filepath.Join(payloadDir, "agent-prompt.md"), []byte(def), 0o444); err != nil {
 			return Staged{}, err
 		}
 	}
 
 	st.SkillsHostDir = skillsDir
-	st.EtcOSGHost = filepath.Join(root, "osg")
+	st.EtcOSGHost = filepath.Join(root, "whaleshell")
 	if n, _ := countEntries(payloadDir); n > 0 {
 		st.PayloadHostDir = payloadDir
 	} else {

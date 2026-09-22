@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+// SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 // SPDX-License-Identifier: MIT
 
 package agentconfig
@@ -22,7 +22,7 @@ func TestStageBuiltin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), "osg Policy Advisor") {
+	if !strings.Contains(string(b), "whaleshell Policy Advisor") {
 		t.Fatalf("missing advisor content")
 	}
 	skill := filepath.Join(st.SkillsHostDir, "policy-advisor", "SKILL.md")

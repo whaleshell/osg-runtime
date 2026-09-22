@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+// SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 // SPDX-License-Identifier: MIT
 
 package agentconfig
@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/zorneth/osg-core/defaults"
+	"github.com/whaleshell/whaleshell-core/defaults"
 )
 
 // Guest is the minimal sandbox surface needed to install a staged config.
@@ -21,9 +21,9 @@ type Guest interface {
 // Install copies a staged tree into the sandbox guest.
 //
 // Layout aligned with OpenShell's roles:
-//   - /etc/osg/skills + /etc/osg/agent-payload  (control tree; CopyTo bypasses Landlock)
+//   - /etc/whaleshell/skills + /etc/whaleshell/agent-payload  (control tree; CopyTo bypasses Landlock)
 //   - /AGENTS.md                               (root pointer, like OpenShell)
-//   - /sandbox/home → /osg/data/home           (harness HOME alias)
+//   - /sandbox/home → /whaleshell/data/home           (harness HOME alias)
 //   - $HOME/.cursor|claude/skills              (discovery links)
 func Install(g Guest, st Staged) error {
 	if g == nil {
@@ -32,7 +32,7 @@ func Install(g Guest, st Staged) error {
 
 	if st.EtcOSGHost != "" {
 		if err := g.CopyTo(st.EtcOSGHost, "/etc"); err != nil {
-			return fmt.Errorf("agentconfig: /etc/osg: %w", err)
+			return fmt.Errorf("agentconfig: /etc/whaleshell: %w", err)
 		}
 	}
 
@@ -41,9 +41,9 @@ set -e
 mkdir -p "%s/.cursor/skills" "%s/.claude/skills" "%s/.cursor" "%s/.claude" "%s"
 ln -sfn "%s" "%s"
 # Harness HOME alias (OpenShell uses /sandbox/home).
-grep -q OSG_AGENT_HOME "%s/.profile" 2>/dev/null || printf '%%s\n' \
-  'export OSG_AGENT_HOME=%s' \
-  'export HOME="${OSG_AGENT_HOME:-%s}"' >> "%s/.profile"
+grep -q WHALESHELL_AGENT_HOME "%s/.profile" 2>/dev/null || printf '%%s\n' \
+  'export WHALESHELL_AGENT_HOME=%s' \
+  'export HOME="${WHALESHELL_AGENT_HOME:-%s}"' >> "%s/.profile"
 `,
 		defaults.GuestHome, defaults.GuestHome,
 		defaults.GuestHome, defaults.GuestHome,
@@ -100,7 +100,7 @@ fi
 		// If runtime wasn't included, still apply seed via inline prepare using payload path.
 		script := fmt.Sprintf(`
 set -e
-export OSG_AGENT_HOME="%s"
+export WHALESHELL_AGENT_HOME="%s"
 export HOME="%s"
 PREP="%s"
 SEED="%s"

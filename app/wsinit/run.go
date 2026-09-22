@@ -1,5 +1,5 @@
-// Command osg-init runs inside the sandbox: apply harden, then exec the agent.
-package main
+// Package wsinit is the composition root for whaleshell-init.
+package wsinit
 
 import (
 	"context"
@@ -11,19 +11,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/zorneth/osg-core/policy"
-	"github.com/zorneth/osg-runtime/harden"
+	"github.com/whaleshell/whaleshell-core/policy"
+	"github.com/whaleshell/whaleshell-runtime/harden"
 )
 
-func main() {
-	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func run(args []string) error {
-	policyPath := os.Getenv("OSG_POLICY")
+func Run(args []string) error {
+	policyPath := os.Getenv("WHALESHELL_POLICY")
 	mode := harden.Mode("")
 	probe := false
 	noDrop := false
@@ -34,13 +27,13 @@ func run(args []string) error {
 		case "--policy":
 			i++
 			if i >= len(args) {
-				return fmt.Errorf("osg-init: --policy needs a value")
+				return fmt.Errorf("whaleshell-init: --policy needs a value")
 			}
 			policyPath = args[i]
 		case "--mode":
 			i++
 			if i >= len(args) {
-				return fmt.Errorf("osg-init: --mode needs a value")
+				return fmt.Errorf("whaleshell-init: --mode needs a value")
 			}
 			mode = harden.Mode(args[i])
 		case "--probe":
@@ -51,11 +44,11 @@ func run(args []string) error {
 			cmd = args[i+1:]
 			i = len(args)
 		case "-h", "--help":
-			fmt.Fprintf(os.Stderr, "usage: osg-init [--probe] [--policy PATH] [--mode best_effort|required] [--no-drop] -- <cmd>...\n")
+			fmt.Fprintf(os.Stderr, "usage: whaleshell-init [--probe] [--policy PATH] [--mode best_effort|required] [--no-drop] -- <cmd>...\n")
 			return nil
 		default:
 			if strings.HasPrefix(args[i], "-") {
-				return fmt.Errorf("osg-init: unknown flag %q", args[i])
+				return fmt.Errorf("whaleshell-init: unknown flag %q", args[i])
 			}
 			cmd = args[i:]
 			i = len(args)
@@ -81,10 +74,10 @@ func run(args []string) error {
 		}
 		doc, err = policy.Load(abs)
 		if err != nil {
-			return fmt.Errorf("osg-init: policy: %w", err)
+			return fmt.Errorf("whaleshell-init: policy: %w", err)
 		}
 		if err := doc.Validate(); err != nil {
-			return fmt.Errorf("osg-init: policy: %w", err)
+			return fmt.Errorf("whaleshell-init: policy: %w", err)
 		}
 	} else {
 		doc = policy.Document{Version: 1}
@@ -105,7 +98,7 @@ func run(args []string) error {
 	_ = res
 
 	if len(cmd) == 0 {
-		return fmt.Errorf("osg-init: missing command (use -- <cmd>...)")
+		return fmt.Errorf("whaleshell-init: missing command (use -- <cmd>...)")
 	}
 	bin, err := exec.LookPath(cmd[0])
 	if err != nil {

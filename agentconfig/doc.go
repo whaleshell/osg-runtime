@@ -1,12 +1,12 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 zorneth
+// SPDX-FileCopyrightText: Copyright (c) 2026 whaleshell
 // SPDX-License-Identifier: MIT
 
 // Package agentconfig stages and installs agent guidance into sandboxes.
 //
 // Layout (inspired by OpenShell's /etc/openshell/{skills,agent-payload}, MIT-owned):
 //
-//	/etc/osg/skills/           — static skills + policy advisor notes
-//	/etc/osg/agent/            — optional MCP/config payload
+//	/etc/whaleshell/skills/           — static skills + policy advisor notes
+//	/etc/whaleshell/agent/            — optional MCP/config payload
 //	$HOME/.cursor/skills/…     — symlinks so Cursor Agent discovers skills
 //	$HOME/.claude/skills/…     — symlinks for Claude Code
 //	/workspace/AGENTS.md       — pointer (only if missing)

@@ -5,7 +5,7 @@ package harden
 import (
 	"fmt"
 
-	"github.com/zorneth/osg-core/policy"
+	"github.com/whaleshell/whaleshell-core/policy"
 )
 
 func landlockABI() (int, error) {

@@ -1,33 +1,33 @@
-<h1 align="center">osg-runtime</h1>
+<h1 align="center">whaleshell-runtime</h1>
 
 <p align="center">
   <strong>Sandbox glue & images</strong><br>
-  Lifecycle helpers, harden, secrets store, osg-init, and GHCR sandbox images.
+  Lifecycle helpers, harden, secrets store, whaleshell-init, and GHCR sandbox images.
 </p>
 <p align="center">
-  <a href="https://github.com/zorneth/osg-runtime/actions/workflows/ci.yml"><img src="https://github.com/zorneth/osg-runtime/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://pkg.go.dev/github.com/zorneth/osg-runtime"><img src="https://pkg.go.dev/badge/github.com/zorneth/osg-runtime.svg" alt="Go Reference"></a>
+  <a href="https://github.com/whaleshell/whaleshell-runtime/actions/workflows/ci.yml"><img src="https://github.com/whaleshell/whaleshell-runtime/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pkg.go.dev/github.com/whaleshell/whaleshell-runtime"><img src="https://pkg.go.dev/badge/github.com/whaleshell/whaleshell-runtime.svg" alt="Go Reference"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
-  <a href="https://github.com/zorneth/osg-runtime"><img src="https://img.shields.io/badge/Go-1.27+-00ADD8?logo=go" alt="Go Version"></a>
+  <a href="https://github.com/whaleshell/whaleshell-runtime"><img src="https://img.shields.io/badge/Go-1.27+-00ADD8?logo=go" alt="Go Version"></a>
 
-  <a href="https://github.com/zorneth/osg-runtime/actions/workflows/images-sandbox.yml"><img src="https://github.com/zorneth/osg-runtime/actions/workflows/images-sandbox.yml/badge.svg" alt="images-sandbox"></a>
+  <a href="https://github.com/whaleshell/whaleshell-runtime/actions/workflows/images-sandbox.yml"><img src="https://github.com/whaleshell/whaleshell-runtime/actions/workflows/images-sandbox.yml/badge.svg" alt="images-sandbox"></a>
 </p>
 <p align="center">
-  <sub>Part of the <a href="https://github.com/zorneth">zorneth / osg</a> ecosystem</sub>
+  <sub>Part of the <a href="https://github.com/whaleshell">whaleshell / whaleshell</a> ecosystem</sub>
 </p>
 
 ---
 
 ## Overview
 
-**osg-runtime** ties sandbox creation together: guest init (`osg-init`), Landlock/seccomp harden, secrets store, inference snippets, and the Debian-based sandbox image flavors published to GHCR.
+**whaleshell-runtime** ties sandbox creation together: guest init (`whaleshell-init`), Landlock/seccomp harden, secrets store, inference snippets, and the Debian-based sandbox image flavors published to GHCR.
 
 ### Key Features
 
 | Category | Capabilities |
 |----------|--------------|
-| **Images** | `sandboxes/{base,gui,gpu}` on `ghcr.io/zorneth/osg` |
-| **Init** | `osg-init` — Landlock, seccomp, workspace mount |
+| **Images** | `sandboxes/{base,gui,gpu}` on `ghcr.io/whaleshell/whaleshell` |
+| **Init** | `whaleshell-init` — Landlock, seccomp, workspace mount |
 | **Secrets** | Host-side store resolved into guest placeholders |
 | **Harden** | Linux sandbox hardening helpers |
 | **Inference** | Local host-gateway model URL helpers |
@@ -37,15 +37,15 @@
 ## Installation
 
 ```bash
-go get github.com/zorneth/osg-runtime@latest
+go get github.com/whaleshell/whaleshell-runtime@latest
 ```
 
 **Images (after CI publish):**
 
 ```text
-ghcr.io/zorneth/osg/sandboxes/base:latest
-ghcr.io/zorneth/osg/sandboxes/gui:latest
-ghcr.io/zorneth/osg/sandboxes/gpu:latest
+ghcr.io/whaleshell/whaleshell/sandboxes/base:latest
+ghcr.io/whaleshell/whaleshell/sandboxes/gui:latest
+ghcr.io/whaleshell/whaleshell/sandboxes/gpu:latest
 ```
 
 **Requirements:** Go 1.27+
@@ -57,9 +57,9 @@ ghcr.io/zorneth/osg/sandboxes/gpu:latest
 ```bash
 # build guest init into the image context (as CI does)
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -o images/sandbox/osg-init ./cmd/osg-init
+  go build -o images/sandbox/whaleshell-init ./cmd/whaleshell-init
 
-docker build -t osg-sandbox:local --target cli -f images/sandbox/Dockerfile images/sandbox
+docker build -t whaleshell-sandbox:local --target cli -f images/sandbox/Dockerfile images/sandbox
 ```
 
 ---
@@ -68,7 +68,7 @@ docker build -t osg-sandbox:local --target cli -f images/sandbox/Dockerfile imag
 
 | Path | Purpose |
 |------|---------|
-| `cmd/osg-init` | Guest entrypoint |
+| `cmd/whaleshell-init` | Guest entrypoint |
 | `sandbox/` | Lifecycle helpers |
 | `harden/` | Landlock / seccomp |
 | `secrets/` | Secret store |
@@ -84,10 +84,10 @@ docker build -t osg-sandbox:local --target cli -f images/sandbox/Dockerfile imag
 | Resource | Link |
 |----------|------|
 | Roadmap | [ROADMAP.md](./ROADMAP.md) |
-| Organization | [https://github.com/zorneth](https://github.com/zorneth) |
-| Organization overview | [github.com/zorneth](https://github.com/zorneth) |
-| pkg.go.dev | [`github.com/zorneth/osg-runtime`](https://pkg.go.dev/github.com/zorneth/osg-runtime) |
+| Organization | [https://github.com/whaleshell](https://github.com/whaleshell) |
+| Organization overview | [github.com/whaleshell](https://github.com/whaleshell) |
+| pkg.go.dev | [`github.com/whaleshell/whaleshell-runtime`](https://pkg.go.dev/github.com/whaleshell/whaleshell-runtime) |
 
 ## License
 
-[MIT](./LICENSE) © zorneth
+[MIT](./LICENSE) © whaleshell

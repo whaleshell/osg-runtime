@@ -1,5 +1,5 @@
-// Command osg-agent dials the gateway relay and runs exec requests.
-package main
+// Package agent is the composition root for whaleshell-agent.
+package agent
 
 import (
 	"bytes"
@@ -14,27 +14,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zorneth/osg-runtime/logging"
-	"github.com/zorneth/slogx"
+	"github.com/whaleshell/slogx"
+	"github.com/whaleshell/whaleshell-runtime/logging"
 )
 
-func main() {
-	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-
-func run(args []string) error {
+func Run(args []string) error {
 	const op = "agent.run"
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	log := logging.Setup(ctx, logging.Options{Service: "osg-agent"})
+	log := logging.Setup(ctx, logging.Options{Service: "whaleshell-agent"})
 	ctx = logging.ToContext(ctx, log)
 	log = log.With(slog.String("op", op))
 
-	gateway := os.Getenv("OSG_GATEWAY")
-	name := os.Getenv("OSG_SANDBOX")
+	gateway := os.Getenv("WHALESHELL_GATEWAY")
+	name := os.Getenv("WHALESHELL_SANDBOX")
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--gateway":
@@ -44,14 +37,14 @@ func run(args []string) error {
 			i++
 			name = args[i]
 		case "-h", "--help":
-			fmt.Fprintf(os.Stderr, "usage: osg-agent --gateway URL --name SANDBOX\n")
+			fmt.Fprintf(os.Stderr, "usage: whaleshell-agent --gateway URL --name SANDBOX\n")
 			return nil
 		default:
 			return fmt.Errorf("unknown flag %q", args[i])
 		}
 	}
 	if gateway == "" || name == "" {
-		return fmt.Errorf("osg-agent: --gateway and --name required")
+		return fmt.Errorf("whaleshell-agent: --gateway and --name required")
 	}
 	base := strings.TrimRight(gateway, "/")
 	log.Info("registering with gateway", slog.String("sandbox", name), slog.String("gateway", base))
