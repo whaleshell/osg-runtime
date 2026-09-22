@@ -34,21 +34,21 @@ jobs:
       - name: Checkout whaleshell-core
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-core
+          repository: whaleshell/whaleshell-core
           path: whaleshell-core
           ref: main
 
       - name: Checkout whaleshell-driver
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-driver
+          repository: whaleshell/whaleshell-driver
           path: whaleshell-driver
           ref: main
 
       - name: Checkout whaleshell-proxy
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-proxy
+          repository: whaleshell/whaleshell-proxy
           path: whaleshell-proxy
           ref: main
 
@@ -118,21 +118,21 @@ jobs:
       - name: Checkout whaleshell-core
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-core
+          repository: whaleshell/whaleshell-core
           path: whaleshell-core
           ref: main
 
       - name: Checkout whaleshell-driver
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-driver
+          repository: whaleshell/whaleshell-driver
           path: whaleshell-driver
           ref: main
 
       - name: Checkout whaleshell-proxy
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-proxy
+          repository: whaleshell/whaleshell-proxy
           path: whaleshell-proxy
           ref: main
 
@@ -202,21 +202,21 @@ jobs:
       - name: Checkout whaleshell-core
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-core
+          repository: whaleshell/whaleshell-core
           path: whaleshell-core
           ref: main
 
       - name: Checkout whaleshell-driver
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-driver
+          repository: whaleshell/whaleshell-driver
           path: whaleshell-driver
           ref: main
 
       - name: Checkout whaleshell-proxy
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-proxy
+          repository: whaleshell/whaleshell-proxy
           path: whaleshell-proxy
           ref: main
 
@@ -284,21 +284,21 @@ jobs:
       - name: Checkout whaleshell-core
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-core
+          repository: whaleshell/whaleshell-core
           path: whaleshell-core
           ref: main
 
       - name: Checkout whaleshell-driver
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-driver
+          repository: whaleshell/whaleshell-driver
           path: whaleshell-driver
           ref: main
 
       - name: Checkout whaleshell-proxy
         uses: actions/checkout@v4
         with:
-          repository: whaleshell/osg-proxy
+          repository: whaleshell/whaleshell-proxy
           path: whaleshell-proxy
           ref: main
 
