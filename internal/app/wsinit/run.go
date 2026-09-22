@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/whaleshell/whaleshell-core/policy"
-	"github.com/whaleshell/whaleshell-runtime/harden"
+	"github.com/whaleshell/whaleshell-runtime/internal/harden"
 )
 
 func Run(args []string) error {

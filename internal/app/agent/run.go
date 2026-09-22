@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/whaleshell/slogx"
-	"github.com/whaleshell/whaleshell-runtime/logging"
+	"github.com/whaleshell/whaleshell-runtime/internal/logging"
 )
 
 func Run(args []string) error {

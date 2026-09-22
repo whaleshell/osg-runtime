@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/whaleshell/whaleshell-runtime/app/wsinit"
+	"github.com/whaleshell/whaleshell-runtime/internal/app/wsinit"
 )
 
 func main() {

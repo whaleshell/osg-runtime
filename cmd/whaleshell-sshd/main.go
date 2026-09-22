@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/whaleshell/whaleshell-runtime/app/sshd"
+	"github.com/whaleshell/whaleshell-runtime/internal/app/sshd"
 )
 
 func main() {
