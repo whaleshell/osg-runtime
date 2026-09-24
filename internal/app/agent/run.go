@@ -116,7 +116,8 @@ func runJob(argv []string) (string, int) {
 		return "empty argv", 1
 	}
 	cmd := exec.Command(argv[0], argv[1:]...)
-	var buf bytes.Buffer
+	var buf cappedBuffer
+	buf.max = maxJobOutputBytes
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 	err := cmd.Run()
@@ -126,10 +127,43 @@ func runJob(argv []string) (string, int) {
 			code = ee.ExitCode()
 		} else {
 			code = 1
-			buf.WriteString(err.Error())
+			_, _ = buf.Write([]byte(err.Error()))
 		}
 	}
 	return buf.String(), code
+}
+
+// maxJobOutputBytes caps relayed agent stdout/stderr (OpenShell-style: avoid
+// unbounded capture into gateway/relay memory).
+const maxJobOutputBytes = 4 << 20 // 4 MiB
+
+type cappedBuffer struct {
+	buf bytes.Buffer
+	n   int
+	max int
+}
+
+func (c *cappedBuffer) Write(p []byte) (int, error) {
+	if c.max <= 0 {
+		return c.buf.Write(p)
+	}
+	if c.n >= c.max {
+		return len(p), nil
+	}
+	remain := c.max - c.n
+	if len(p) > remain {
+		_, err := c.buf.Write(p[:remain])
+		c.n = c.max
+		_, _ = c.buf.WriteString("\n…[truncated]\n")
+		return len(p), err
+	}
+	n, err := c.buf.Write(p)
+	c.n += n
+	return n, err
+}
+
+func (c *cappedBuffer) String() string {
+	return c.buf.String()
 }
 
 func postResult(client *http.Client, base, name, id, out string, code int) error {
